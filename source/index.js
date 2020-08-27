@@ -1,19 +1,27 @@
+function getNode(selector) {
+  return document.querySelector(selector);
+};
+
 const character = {
   name: 'Pikachu',
-  defaultHP: 150,
-  damageHP: 150,
-  elHP: document.querySelector('#health-character'),
-  elProgressbar: document.querySelector('#progressbar-character'),
+  hp: {
+    default: 150,
+    damage: 150
+  },
+  elHP: getNode('#health-character'),
+  elProgressbar: getNode('#progressbar-character'),
   renderHP,
   changeHP
 };
 
 const enemy = {
   name: 'Charmander',
-  defaultHP: 100,
-  damageHP: 100,
-  elHP: document.querySelector('#health-enemy'),
-  elProgressbar: document.querySelector('#progressbar-enemy'),
+  hp: {
+    default: 100,
+    damage: 100
+  },
+  elHP: getNode('#health-enemy'),
+  elProgressbar: getNode('#progressbar-enemy'),
   renderHP,
   changeHP
 };
@@ -46,8 +54,8 @@ function init() {
 };
 
 function renderHP() {
-  this.elHP.innerText = this.damageHP + ' / ' + this.defaultHP;
-  this.elProgressbar.style.width =  this.damageHP / this.defaultHP * 100 + '%';
+  this.elHP.innerText = this.hp.damage + ' / ' + this.hp.default;
+  this.elProgressbar.style.width =  this.hp.damage / this.hp.default * 100 + '%';
 };
 
 function renderTechniques(array) {
@@ -71,11 +79,11 @@ function setDamage(e) {
 };
 
 function changeHP(count = 10) {
-  if (this.damageHP < count) {
-    this.damageHP = 0;
+  this.hp.damage -= count;
+
+  if (this.hp.damage <= 0) {
+    this.hp.damage = 0;
     gameOver.apply(this);
-  } else {
-    this.damageHP -= count;
   };
 
   this.renderHP();
