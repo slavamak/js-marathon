@@ -1,9 +1,11 @@
 const character = {
   name: 'Pikachu',
-  defaultHP: 100,
-  damageHP: 100,
+  defaultHP: 150,
+  damageHP: 150,
   elHP: document.querySelector('#health-character'),
-  elProgressbar: document.querySelector('#progressbar-character')
+  elProgressbar: document.querySelector('#progressbar-character'),
+  renderHP,
+  changeHP
 };
 
 const enemy = {
@@ -11,7 +13,9 @@ const enemy = {
   defaultHP: 100,
   damageHP: 100,
   elHP: document.querySelector('#health-enemy'),
-  elProgressbar: document.querySelector('#progressbar-enemy')
+  elProgressbar: document.querySelector('#progressbar-enemy'),
+  renderHP,
+  changeHP
 };
 
 const techniques = [
@@ -35,23 +39,15 @@ const techniques = [
 function init() {
   renderTechniques(techniques);
 
-  renderHP(character);
-  renderHP(enemy);
+  character.renderHP();
+  enemy.renderHP()
 
   console.log('Start Game!');
 };
 
-function renderHP(pokemon) {
-  renderHPLife(pokemon);
-  renderProgressbarHP(pokemon);
-}
-
-function renderHPLife(pokemon) {
-  pokemon.elHP.innerText = pokemon.damageHP + ' / ' + pokemon.defaultHP;
-};
-
-function renderProgressbarHP(pokemon) {
-  pokemon.elProgressbar.style.width = pokemon.damageHP + '%';
+function renderHP() {
+  this.elHP.innerText = this.damageHP + ' / ' + this.defaultHP;
+  this.elProgressbar.style.width =  this.damageHP / this.defaultHP * 100 + '%';
 };
 
 function renderTechniques(array) {
@@ -65,41 +61,38 @@ function renderTechniques(array) {
     button.innerText = array[i].name;
 
     control.appendChild(button);
-    causeDamage(button)
+    button.addEventListener('click', setDamage)
   };
 };
 
-function causeDamage(el) {
-  el.addEventListener('click', function(e) {
-    changeHP(random(e.target.dataset.damage), character);
-    changeHP(random(e.target.dataset.damage), enemy);
-  });
+function setDamage(e) {
+  character.changeHP(random(e.target.dataset.damage));
+  enemy.changeHP(random(e.target.dataset.damage));
 };
 
-function changeHP(count, pokemon) {
-  if (pokemon.damageHP < count) {
-    pokemon.damageHP = 0;
-    gameOver(pokemon.name);
+function changeHP(count = 10) {
+  if (this.damageHP < count) {
+    this.damageHP = 0;
+    gameOver.apply(this);
   } else {
-    pokemon.damageHP -= count;
+    this.damageHP -= count;
   };
 
-  renderHP(pokemon);
+  this.renderHP();
 };
 
 function random(num) {
   return Math.ceil(Math.random() * num)
 };
 
-function gameOver(pokemon) {
+function gameOver() {
   const $buttons = document.querySelectorAll('button');
 
   for (let i = 0; i < $buttons.length; i++) {
     $buttons[i].disabled = true;
   };
-  
-  alert(pokemon + ' lost!');
-  
+
+  alert(this.name + ' lost!');
 };
 
 init();
