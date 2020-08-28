@@ -40,16 +40,21 @@ body {
   position: relative;
   margin: 20px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  justify-content: space-between;
 }
 
 .control__item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.control__item-button {
   margin-bottom: 10px;
 }
 
-.control__item:last-child {
+.control__item-button:last-child {
   margin-bottom: 0;
 }
 
@@ -302,10 +307,10 @@ body {
   border-radius: 10px;
   min-height: 30px;
   vertical-align: middle;
-  padding: 12px 20px;
+  padding: 10px 16px;
   outline: none !important;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 14px;
 
 }
 .button:after {

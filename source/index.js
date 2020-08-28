@@ -10,8 +10,26 @@ const character = {
   },
   elHP: getNode('#health-character'),
   elProgressbar: getNode('#progressbar-character'),
+  techniques: [
+    {
+      name: 'Thunder Jolt',
+      id: 'thunder-jolt',
+      damage: 20
+    },
+    {
+      name: 'Thunder Wave',
+      id: 'thunder-wave',
+      damage: 15
+    },
+    {
+      name: 'Thunder Shock',
+      id: 'thunder-shock',
+      damage: 25
+    }
+  ],
   renderHP,
-  changeHP
+  changeHP,
+  renderTechniques
 };
 
 const enemy = {
@@ -22,33 +40,34 @@ const enemy = {
   },
   elHP: getNode('#health-enemy'),
   elProgressbar: getNode('#progressbar-enemy'),
+  techniques: [
+    {
+      name: 'Mega Punch',
+      id: 'mega-punch',
+      damage: 20
+    },
+    {
+      name: 'Mega Kick',
+      id: 'mega-kick',
+      damage: 5
+    },
+    {
+      name: 'Fire Punch',
+      id: 'fire-punch',
+      damage: 15
+    }
+  ],
   renderHP,
-  changeHP
+  changeHP,
+  renderTechniques
 };
 
-const techniques = [
-  {
-    name: 'Thunder Jolt',
-    id: 'thunder-jolt',
-    damage: 20
-  },
-  {
-    name: 'Thunder Wave',
-    id: 'thunder-wave',
-    damage: 30
-  },
-  {
-    name: 'Thunder Shock',
-    id: 'thunder-shock',
-    damage: 40
-  }
-];
-
 function init() {
-  renderTechniques(techniques);
-
   character.renderHP();
-  enemy.renderHP()
+  enemy.renderHP();
+
+  character.renderTechniques();
+  enemy.renderTechniques()
 
   renderLog('Start Game!');
 };
@@ -60,36 +79,43 @@ function renderHP() {
   elProgressbar.style.width =  damage / base * 100 + '%';
 };
 
-function renderTechniques(array) {
-  const control = document.querySelector('.control');
+function renderTechniques() {
+  const control = getNode('.control');
+  const {name, techniques} = this;
 
-  for (let i = 0; i < array.length; i++) {
+  const container = document.createElement('div');
+  container.classList.add('control__item');
+  container.id = name;
+  control.appendChild(container);
+  container.addEventListener('click', setDamage.bind(this))
+
+  for (let i = 0; i < techniques.length; i++) {
     const button = document.createElement('button');
-    button.classList.add('button', 'control__item');
-    button.id = array[i].id;
-    button.dataset.damage = array[i].damage;
-    button.innerText = array[i].name;
+    button.classList.add('button', 'control__item-button');
+    button.id = techniques[i].id;
+    button.dataset.damage = techniques[i].damage;
+    button.innerText = techniques[i].name;
 
-    control.appendChild(button);
-    button.addEventListener('click', setDamage)
+    container.appendChild(button);
   };
 };
 
 function setDamage(e) {
-  character.changeHP(random(e.target.dataset.damage));
-  enemy.changeHP(random(e.target.dataset.damage));
+  const {damage} = e.target.dataset;
+
+  this === enemy ? character.changeHP(random(damage)) : enemy.changeHP(random(damage));
 };
 
 function changeHP(count = 10) {
   this.hp.damage -= count;
 
-  const message = this === enemy ? getLog(enemy, character, count) : getLog(character, enemy, count);
-  renderLog(message);
-
   if (this.hp.damage <= 0) {
     this.hp.damage = 0;
     gameOver.apply(this);
   };
+
+  const message = this === enemy ? getLog(enemy, character, count) : getLog(character, enemy, count);
+  renderLog(message);
 
   this.renderHP();
 };
