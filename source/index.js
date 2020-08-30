@@ -1,6 +1,4 @@
-function getNode(selector) {
-  return document.querySelector(selector);
-};
+const getNode = selector => document.querySelector(selector);
 
 const character = {
   name: 'Pikachu',
@@ -62,6 +60,8 @@ const enemy = {
   renderTechniques
 };
 
+const BUTTON_CLICKS_LIMIT = 3;
+
 function init() {
   character.renderHP();
   enemy.renderHP();
@@ -87,16 +87,55 @@ function renderTechniques() {
   container.classList.add('control__item');
   container.id = name;
   control.appendChild(container);
-  container.addEventListener('click', setDamage.bind(this))
 
   for (let i = 0; i < techniques.length; i++) {
     const button = document.createElement('button');
     button.classList.add('button', 'control__item-button');
     button.id = techniques[i].id;
     button.dataset.damage = techniques[i].damage;
-    button.innerText = techniques[i].name;
 
+    const buttonName = document.createElement('span');
+    buttonName.innerText = techniques[i].name;
+    button.appendChild(buttonName);
+
+    const availableClicks = document.createElement('span');
+    availableClicks.dataset.buttonLimit = true;
+    availableClicks.classList.add('limit');
+    availableClicks.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT}`;
+
+    button.appendChild(availableClicks);
     container.appendChild(button);
+
+    const setButtonLimit = limit(BUTTON_CLICKS_LIMIT);
+    button.addEventListener('click', handleBtnClick.bind(this, setButtonLimit))
+  };
+};
+
+function handleBtnClick(fn, event) {
+  const button = event.target;
+  const buttonLimit = event.target.lastChild;
+  const limit = fn();
+
+  setDamage.call(this, event);
+
+  if (limit.end) {
+    button.disabled = true;
+  };
+
+  buttonLimit.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT - limit.clicks}`;
+  renderLog(`${button.id.toUpperCase()} clicks: ${limit.clicks}/${BUTTON_CLICKS_LIMIT}`);
+};
+
+function limit(max) {
+  let start = 0;
+
+  return function() {
+    ++start
+
+    return {
+      clicks: start,
+      end: start >= max
+    };
   };
 };
 
@@ -120,9 +159,7 @@ function changeHP(count = 10) {
   this.renderHP();
 };
 
-function random(num) {
-  return Math.ceil(Math.random() * num)
-};
+const random = num => Math.ceil(Math.random() * num);
 
 function gameOver() {
   const $buttons = document.querySelectorAll('button');
@@ -160,6 +197,6 @@ function getLog(firstPokemon, secondPokemon, count) {
   const log =  logs[random(logs.length - 1)] + info;
 
   return log;
-}
+};
 
 init();
