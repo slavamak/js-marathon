@@ -58,6 +58,19 @@ body {
   margin-bottom: 0;
 }
 
+.control__item-button span {
+  pointer-events: none;
+  display: block;
+}
+
+.control__item-button .limit {
+  font-size: 10px;
+  display: block;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
 .playground {
   max-width: 1024px;
   display: flex;
