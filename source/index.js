@@ -1,13 +1,13 @@
-const getNode = selector => document.querySelector(selector);
+import random from './utils/random.js';
+import getNode from './utils/getNode';
 
-const character = {
+import Pokemon from './components/Pokemon.js';
+import {renderLog, getLog} from './components/logs.js';
+
+const player1 = new Pokemon({
   name: 'Pikachu',
-  hp: {
-    default: 150,
-    damage: 150
-  },
-  elHP: getNode('#health-character'),
-  elProgressbar: getNode('#progressbar-character'),
+  hp: 50,
+  selectors: 'character',
   techniques: [
     {
       name: 'Thunder Jolt',
@@ -24,20 +24,13 @@ const character = {
       id: 'thunder-shock',
       damage: 25
     }
-  ],
-  renderHP,
-  changeHP,
-  renderTechniques
-};
+  ]
+});
 
-const enemy = {
+const player2 = new Pokemon({
   name: 'Charmander',
-  hp: {
-    default: 100,
-    damage: 100
-  },
-  elHP: getNode('#health-enemy'),
-  elProgressbar: getNode('#progressbar-enemy'),
+  hp: 150,
+  selectors: 'enemy',
   techniques: [
     {
       name: 'Mega Punch',
@@ -54,79 +47,34 @@ const enemy = {
       id: 'fire-punch',
       damage: 15
     }
-  ],
-  renderHP,
-  changeHP,
-  renderTechniques
-};
+  ]
+});
 
 const BUTTON_CLICKS_LIMIT = 3;
+let $buttons;
 
 function init() {
-  character.renderHP();
-  enemy.renderHP();
-
-  character.renderTechniques();
-  enemy.renderTechniques()
-
   renderLog('Start Game!');
+  initButtons();
 };
 
-function renderHP() {
-  const {elHP, elProgressbar, hp: {default: base, damage}} = this;
+function initButtons() {
+  $buttons = document.querySelectorAll('button');
 
-  elHP.innerText = damage + ' / ' + base;
-  elProgressbar.style.width =  damage / base * 100 + '%';
-};
-
-function renderTechniques() {
-  const control = getNode('.control');
-  const {name, techniques} = this;
-
-  const container = document.createElement('div');
-  container.classList.add('control__item');
-  container.id = name;
-  control.appendChild(container);
-
-  for (let i = 0; i < techniques.length; i++) {
-    const button = document.createElement('button');
-    button.classList.add('button', 'control__item-button');
-    button.id = techniques[i].id;
-    button.dataset.damage = techniques[i].damage;
-
-    const buttonName = document.createElement('span');
-    buttonName.innerText = techniques[i].name;
-    button.appendChild(buttonName);
-
+  for (let i = 0; i < $buttons.length; i++) {
     const availableClicks = document.createElement('span');
     availableClicks.dataset.buttonLimit = true;
     availableClicks.classList.add('limit');
     availableClicks.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT}`;
 
-    button.appendChild(availableClicks);
-    container.appendChild(button);
+    $buttons[i].appendChild(availableClicks);
 
-    const setButtonLimit = limit(BUTTON_CLICKS_LIMIT);
-    button.addEventListener('click', handleBtnClick.bind(this, setButtonLimit))
+    const setButtonLimit = btnClickLimit(BUTTON_CLICKS_LIMIT);
+    $buttons[i].addEventListener('click', handleBtnClick.bind(this, setButtonLimit));
   };
 };
 
-function handleBtnClick(fn, event) {
-  const button = event.target;
-  const buttonLimit = event.target.lastChild;
-  const limit = fn();
-
-  setDamage.call(this, event);
-
-  if (limit.end) {
-    button.disabled = true;
-  };
-
-  buttonLimit.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT - limit.clicks}`;
-  renderLog(`${button.id.toUpperCase()} clicks: ${limit.clicks}/${BUTTON_CLICKS_LIMIT}`);
-};
-
-function limit(max) {
+function btnClickLimit(max) {
   let start = 0;
 
   return function() {
@@ -139,64 +87,54 @@ function limit(max) {
   };
 };
 
-function setDamage(e) {
-  const {damage} = e.target.dataset;
+function handleBtnClick(fn, event) {
+  const button = event.target;
+  const buttonLimit = button.lastChild;
+  const damage = button.dataset.damage;
+  const player = button.dataset.player;
+  const limit = fn();
 
-  this === enemy ? character.changeHP(random(damage)) : enemy.changeHP(random(damage));
-};
-
-function changeHP(count = 10) {
-  this.hp.damage -= count;
-
-  if (this.hp.damage <= 0) {
-    this.hp.damage = 0;
-    gameOver.apply(this);
+  if (limit.end) {
+    button.disabled = true;
   };
 
-  const message = this === enemy ? getLog(enemy, character, count) : getLog(character, enemy, count);
-  renderLog(message);
+  buttonLimit.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT - limit.clicks}`;
+  renderLog(`${button.id.toUpperCase()} clicks: ${limit.clicks}/${BUTTON_CLICKS_LIMIT}`);
 
-  this.renderHP();
+  let state = null;
+  const realDamage = random(damage);
+
+  switch(player) {
+    case player1.name:
+      state = {
+        endGame: player2.changeHP(realDamage),
+        loserGame: player2.name,
+        message: getLog(player2, player1, realDamage)
+      };
+      break;
+    case player2.name:
+      state = {
+        endGame: player1.changeHP(realDamage),
+        loserGame: player1.name,
+        message: getLog(player1, player2, realDamage)
+      };
+      break;
+  };
+
+  renderLog(state.message);
+
+  if (state.endGame) {
+    gameOver(state.loserGame);
+  };
 };
 
-const random = num => Math.ceil(Math.random() * num);
-
-function gameOver() {
-  const $buttons = document.querySelectorAll('button');
-
+function gameOver(name) {
   for (let i = 0; i < $buttons.length; i++) {
     $buttons[i].disabled = true;
   };
 
-  renderLog(this.name + ' lost!');
-};
-
-function renderLog(string) {
-  const logs = getNode('#logs');
-  const p = document.createElement('p');
-  p.innerText = '###: ' + string;
-
-  logs.insertBefore(p, logs.children[0]);
-};
-
-function getLog(firstPokemon, secondPokemon, count) {
-  const logs = [
-    `${firstPokemon.name} вспомнил что-то важное, но неожиданно ${secondPokemon.name}, не помня себя от испуга, ударил в предплечье врага.`,
-    `${firstPokemon.name} поперхнулся, и за это ${secondPokemon.name} с испугу приложил прямой удар коленом в лоб врага.`,
-    `${firstPokemon.name} забылся, но в это время наглый ${secondPokemon.name}, приняв волевое решение, неслышно подойдя сзади, ударил.`,
-    `${firstPokemon.name} пришел в себя, но неожиданно ${secondPokemon.name} случайно нанес мощнейший удар.`,
-    `${firstPokemon.name} поперхнулся, но в это время ${secondPokemon.name} нехотя раздробил кулаком \<вырезанно цензурой\> противника.`,
-    `${firstPokemon.name} удивился, а ${secondPokemon.name} пошатнувшись влепил подлый удар.`,
-    `${firstPokemon.name} высморкался, но неожиданно ${secondPokemon.name} провел дробящий удар.`,
-    `${firstPokemon.name} пошатнулся, и внезапно наглый ${secondPokemon.name} беспричинно ударил в ногу противника.`,
-    `${firstPokemon.name} расстроился, как вдруг, неожиданно ${secondPokemon.name} случайно влепил стопой в живот соперника.`,
-    `${firstPokemon.name} пытался что-то сказать, но вдруг, неожиданно ${secondPokemon.name} со скуки, разбил бровь сопернику.`
-  ];
-
-  const info = ` -${count} [${firstPokemon.hp.damage}/${firstPokemon.hp.default}]`;
-  const log =  logs[random(logs.length - 1)] + info;
-
-  return log;
+  renderLog(name + ' lost!');
+  renderLog('Game over!');
 };
 
 init();
