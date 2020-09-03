@@ -1,76 +1,39 @@
 import random from './utils/random.js';
-import getNode from './utils/getNode';
+import getNode from './utils/getNode.js';
 
+import Game from './components/Game.js';
 import Pokemon from './components/Pokemon.js';
-import {renderLog, getLog} from './components/logs.js';
 
-const player1 = new Pokemon({
-  name: 'Pikachu',
-  hp: 50,
-  selectors: 'character',
-  techniques: [
-    {
-      name: 'Thunder Jolt',
-      id: 'thunder-jolt',
-      damage: 20
-    },
-    {
-      name: 'Thunder Wave',
-      id: 'thunder-wave',
-      damage: 15
-    },
-    {
-      name: 'Thunder Shock',
-      id: 'thunder-shock',
-      damage: 25
-    }
-  ]
+import {pokemons} from './data/pokemons.js';
+
+const game = new Game({
+  pokemons
 });
 
-const player2 = new Pokemon({
-  name: 'Charmander',
-  hp: 150,
-  selectors: 'enemy',
-  techniques: [
-    {
-      name: 'Mega Punch',
-      id: 'mega-punch',
-      damage: 20
-    },
-    {
-      name: 'Mega Kick',
-      id: 'mega-kick',
-      damage: 5
-    },
-    {
-      name: 'Fire Punch',
-      id: 'fire-punch',
-      damage: 15
-    }
-  ]
-});
+const $buttonStart = getNode('#start');
+$buttonStart.addEventListener('click', handleBtnStart);
 
-const BUTTON_CLICKS_LIMIT = 3;
-let $buttons;
+const $buttonRestart = getNode('#restart');
+$buttonRestart .addEventListener('click', handleBtnRestart);
 
-function init() {
-  renderLog('Start Game!');
+function handleBtnStart() {
+  game.start();
+  initButtons();
+  this.classList.add('hide');
+  $buttonRestart.classList.remove('hide');
+};
+
+function handleBtnRestart() {
+  game.restart();
   initButtons();
 };
 
 function initButtons() {
-  $buttons = document.querySelectorAll('button');
+  const $buttons = document.querySelectorAll('.pokemon__attacks-button');
 
   for (let i = 0; i < $buttons.length; i++) {
-    const availableClicks = document.createElement('span');
-    availableClicks.dataset.buttonLimit = true;
-    availableClicks.classList.add('limit');
-    availableClicks.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT}`;
-
-    $buttons[i].appendChild(availableClicks);
-
-    const setButtonLimit = btnClickLimit(BUTTON_CLICKS_LIMIT);
-    $buttons[i].addEventListener('click', handleBtnClick.bind(this, setButtonLimit));
+    const counter = btnClickLimit($buttons[i].dataset.count);
+    $buttons[i].addEventListener('click', handleBtnClick.bind(this, counter));
   };
 };
 
@@ -90,7 +53,9 @@ function btnClickLimit(max) {
 function handleBtnClick(fn, event) {
   const button = event.target;
   const buttonLimit = button.lastChild;
-  const damage = button.dataset.damage;
+  const minDamage = button.dataset.min;
+  const maxDamage = button.dataset.min;
+  const maxCount = button.dataset.count;
   const player = button.dataset.player;
   const limit = fn();
 
@@ -98,43 +63,48 @@ function handleBtnClick(fn, event) {
     button.disabled = true;
   };
 
-  buttonLimit.innerText = `Available clicks: ${BUTTON_CLICKS_LIMIT - limit.clicks}`;
-  renderLog(`${button.id.toUpperCase()} clicks: ${limit.clicks}/${BUTTON_CLICKS_LIMIT}`);
+  buttonLimit.innerText = `Available clicks: ${maxCount - limit.clicks}`;
+
+  const log = 
+  game.renderLog(`${button.dataset.name} clicks: ${limit.clicks}/${maxCount}`);
 
   let state = null;
-  const realDamage = random(damage);
+  const realDamage = random(minDamage, maxDamage);
 
   switch(player) {
-    case player1.name:
+    case player1.selector:
       state = {
         endGame: player2.changeHP(realDamage),
         loserGame: player2.name,
-        message: getLog(player2, player1, realDamage)
+        message: game.getLog(player2, player1, realDamage)
       };
+
+      !player2.changeHP(realDamage) && changeEnemyHP(player1, player2);
       break;
-    case player2.name:
+    case player2.selector:
       state = {
         endGame: player1.changeHP(realDamage),
         loserGame: player1.name,
-        message: getLog(player1, player2, realDamage)
+        message: game.getLog(player1, player2, realDamage)
       };
+
+      !player1.changeHP(realDamage) && changeEnemyHP(player2, player1);
       break;
   };
 
-  renderLog(state.message);
+  game.renderLog(state.message);
 
   if (state.endGame) {
-    gameOver(state.loserGame);
+    game.end(state.loserGame);
   };
 };
 
-function gameOver(name) {
-  for (let i = 0; i < $buttons.length; i++) {
-    $buttons[i].disabled = true;
-  };
+function changeEnemyHP(character, enemy) {
+  const {name, maxCount, minDamage, maxDamage} = enemy.attacks[0];
+  const damage = random(minDamage, maxDamage);
 
-  renderLog(name + ' lost!');
-  renderLog('Game over!');
+  setTimeout(() => {
+    character.changeHP(damage)
+    game.renderLog(game.getLog(character, enemy, damage));
+  }, 1000);
 };
-
-init();
