@@ -4,21 +4,16 @@ import random from '../utils/random.js';
 import Pokemon from './Pokemon.js';
 
 class Game {
-  constructor({pokemons}) {
-    this.pokemons = pokemons;
-    this.player1 = new Pokemon({
-      ...pokemons.[random(0, pokemons.length - 1)],
-      selector: 'player1'
-    });
-    this.player2 = new Pokemon({
-      ...pokemons.[random(0, pokemons.length - 1)],
-      selector: 'player2'
-    });
-
+  constructor(api) {
+    this.api = api;
     this.renderLog('Welcome to Game!');
   };
 
-  start = () => {
+  start = async () => {
+    this.renderLog('Loading...');
+
+    await this.setPlayers();
+
     this.renderLog('Start Game!');
     this.renderPlayers();
 
@@ -38,32 +33,74 @@ class Game {
     callback && callback();
   };
 
-  restart = () => {
-    const {pokemons} = this;
-
+  restart = async () => {
     this.renderLog('Restart Game!');
 
     this.player1.destroy();
     this.player2.destroy();
 
+    await this.setPlayers();
+    this.renderPlayers();
+  };
+
+  setPlayers = async () => {
+    const player1 = await this.api.getRandomPokemon();
+    const player2 = await this.api.getRandomPokemon();
+
     this.player1 = new Pokemon({
-      ...pokemons.[random(0, pokemons.length - 1)],
+      ...player1,
+      game: this,
       selector: 'player1'
     });
     this.player2 = new Pokemon({
-      ...pokemons.[random(0, pokemons.length - 1)],
+      ...player2,
+      game: this,
       selector: 'player2'
     });
 
-    this.renderPlayers();
+    window.player1 = this.player1;
+    window.player2 = this.player2;
   };
 
   renderPlayers = () => {
     this.player1.render();
     this.player2.render();
+  };
+  
+  setPlayersDamage = (player, id) => {
+    let damage;
+    const _this = this;
 
-    window.player1 = this.player1;
-    window.player2 = this.player2;
+    switch(true) {
+      case (this.player1 === player):
+        set(this.player1, this.player2, id);
+        break;
+      case (this.player2 === player):
+        set(this.player2, this.player1, id);
+        break;
+    };
+
+    async function set(character, enemy, id) {
+      let endGame = false;
+
+      damage = await _this.api.getFight(character.id, id, enemy.id);
+
+      endGame = enemy.changeHP(damage.kick.player2);
+      _this.renderLog(_this.getLog(enemy, character, damage.kick.player2));
+
+      if (endGame) {
+        _this.end(enemy.name);
+        return;
+      };
+
+      endGame = character.changeHP(damage.kick.player1);
+      _this.renderLog(_this.getLog(character, enemy, damage.kick.player1));
+
+      if (endGame) {
+        _this.end(character.name);
+        return;
+      };
+    };
   };
 
   getLog = (firstPokemon, secondPokemon, count) => {
