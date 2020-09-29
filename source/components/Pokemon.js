@@ -1,8 +1,9 @@
 import getNode from '../utils/getNode.js';
 
 class Pokemon {
-  constructor({name, type, img, hp, selector, attacks}) {
+  constructor({id, name, type, img, hp, selector, attacks, game}) {
     this.selector = selector;
+    this.id = id;
     this.name = name;
     this.image = img;
     this.type = type;
@@ -11,6 +12,7 @@ class Pokemon {
       total: hp
     };
     this.attacks = attacks;
+    this.game = game;
   };
 
   render = () => {
@@ -92,10 +94,9 @@ class Pokemon {
     for (let i = 0; i < attacks.length; i++) {
       const button = document.createElement('button');
       button.classList.add('button', 'pokemon__attacks-button');
-      button.dataset.min = attacks[i].minDamage;
-      button.dataset.max = attacks[i].maxDamage;
       button.dataset.count = attacks[i].maxCount;
       button.dataset.name = attacks[i].name;
+      button.dataset.id = attacks[i].id;
       button.dataset.player = this.selector;
   
       const buttonName = document.createElement('span');
@@ -109,7 +110,39 @@ class Pokemon {
       button.appendChild(availableClicks);
 
       container.appendChild(button);
+
+      const counter = btnClickLimit(attacks[i].maxCount);
+      button.addEventListener('click', this.handleAttackClick.bind(this, counter, {id: attacks[i].id, count: attacks[i].maxCount}));
     };
+
+    function btnClickLimit(max) {
+      let start = 0;
+    
+      return function() {
+        ++start
+
+        return {
+          clicks: start,
+          end: start >= max
+        };
+      };
+    };
+  };
+
+  handleAttackClick = (fn, attacks, event) => {
+    const button = event.target;
+    const buttonLimit = button.lastChild;
+    const limit = fn();
+  
+    if (limit.end) {
+      button.disabled = true;
+    };
+  
+    buttonLimit.innerText = `Available clicks: ${attacks.count - limit.clicks}`;
+
+    game.renderLog(`${button.dataset.name} clicks: ${limit.clicks}/${attacks.count}`);
+
+    this.game.setPlayersDamage(this, obj.id);
   };
 
   destroy = () => {
